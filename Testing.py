@@ -26,6 +26,8 @@ from sklearn.model_selection import cross_val_score, StratifiedKFold, learning_c
 from sklearn.linear_model import LinearRegression, Ridge, RidgeCV, Lasso, LassoCV, ElasticNet, ElasticNetCV
 # import lib - Numpy, Scipy, Sympy, Pandas
 
+
+
 # check NULL or 0 or NA or "" value
 def NULL_VALUES(df):
     return df.isnull().sum()
@@ -44,18 +46,28 @@ def NUMBEROFVALUES(df, colName):
     return df[colName].value_counts()
 
 # check Data Type
+def CHECK_IS_NUMBER(df):
+    return df.select_dtypes(include=['float64', 'int64'])
+
+def CHECK_NOT_NUMBER(df):
+    return df.select_dtypes(exclude=['float64', 'int64'])
+
+# check train and test data type is the same
 
 # change the words to int
 # df_data['Sex_Code'] = df_data['Sex'].map({'female' : 1, 'male' : 0}).astype('int')
 
-# Show the graph
+# ------Graph------
+# boxplot
+# pivot_table
+# distplot
+# probplot
 def salesPriceEffectGraph(df):
     for i in df:
         #sb.boxplot(x='', y="SalePrice", hue="Street", data=data)
         #plt.show()
         return ""
         
-# Show the graph
 def distributionGraph(df):
     return ""
 
@@ -65,26 +77,36 @@ def MissingRateGraph():
 
 # random forest
 
-# Read the file from local
+
+# Step 1: Read the file from local
 train = pd.read_csv(r'C:/Users/ACER/Desktop/data/train.csv', index_col=0)
 test = pd.read_csv(r'C:/Users/ACER/Desktop/data/test.csv', index_col=0)
 
-# Try to print the data
-train.head()
-test.head()
+# Step 2: Try to print the data
+print("---Head----")
+print(train.head())
+print(test.head())
 
-train.shape
-test.shape
+# Step 3: Check the size of the data frame
+print("---Shape----")
+print(train.shape)
+print(test.shape)
 
-print(train.info())
-print(train.describe())
+# Step 4: Check the Dtype of the data frame
+print("---DataFrame----")
+print(train.info()) 
 
-print(NULL_VALUES(test))
-print(NUMBEROFVALUES(test,'Street'))
+num = CHECK_IS_NUMBER(train)
+not_num = CHECK_NOT_NUMBER(train)
+print("Number Column:", len(num.keys()))
+print("Column NOT number:", len(not_num.keys()))
+for i in not_num.keys(): print(i, end=',', flush=True)
 
-# Combine the data
-data = pd.concat([train['SalePrice'], train['Street']], axis=1, keys=['SalePrice', 'Street'])
-print(data)
+# Check distribution
+print(num.describe())
+
+# Check categories
+#print(NUMBEROFVALUES(test,'Street'))
 
 # Check the relation
 data = train[['MSSubClass', 'SalePrice']].groupby(['MSSubClass'], as_index=False).mean().sort_values(by='SalePrice', ascending=False)
@@ -92,11 +114,44 @@ print(data)
 
 # Modeling
 
+# Replace the NA column
+train = train.fillna(0)
+train = train.replace('NaN',0)
+test = test.fillna(0)
+test = test.replace('NaN',0)
+
+#train_copy = train.iloc[: , 1:]
+#test_copy = test.iloc[: , 1:]
+
+# Combine the data
+#data = pd.concat([train['SalePrice'], train['Street']], axis=1, keys=['SalePrice', 'Street'])
+all_data = pd.concat([train, test], axis=1)
+all_data = all_data.fillna(0)
+
+print(all_data.shape)
+
+# Step x: Change non-num column to number column
+print("----ExChange to NUMBER----")
+all_data = pd.get_dummies(all_data)
+print(all_data)
+train = all_data[:len(train)]
+test = all_data[len(train):]
+
+train_copy = train.copy()
+train_copy = DROP_COLUMN(train_copy, "SalePrice")
+test_copy = test.copy()
+test_copy = DROP_COLUMN(test_copy, "SalePrice")
 
 # Predict data
-#y_hat_test = reg.predict(test_input)
-#predicted = np.exp(y_hat_test)
+reg = LinearRegression().fit(train_copy, train["SalePrice"])
+reg.coef_
+reg.intercept_
+predicted = reg.predict(test_copy)
+print(predicted)
+
+
+index = test.index.tolist()
 
 # Save to csv
-#preds = pd.DataFrame({'Id' : test['Id'], 'SalePrice': predicted})
-#preds.to_csv('sumbmissionHP.csv', index = False)
+preds = pd.DataFrame({'Id' : index, 'SalePrice': predicted})
+preds.to_csv('sumbmissionHP.csv', index = False)
